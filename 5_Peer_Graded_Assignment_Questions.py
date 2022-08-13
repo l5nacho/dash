@@ -1,8 +1,8 @@
 # Import required libraries
 import pandas as pd
 import dash
-import dash_html_components as html
-import dash_core_components as dcc
+from dash import html
+from dash import dcc
 from dash.dependencies import Input, Output, State
 import plotly.graph_objects as go
 import plotly.express as px
@@ -47,7 +47,7 @@ def compute_data_choice_1(df):
     # Source state count
     map_data = df.groupby(['OriginState'])['Flights'].sum().reset_index()
     # Destination state count
-    tree_data = df.groupby(['DestState', 'Reporting_Airline'])['Flights'].sum().reset_index()
+    tree_data = df.groupby(['DestState', 'Reporting_Airline'])['Flights'].sum().fillna(0).reset_index()
     return bar_data, line_data, div_data, map_data, tree_data
 
 
@@ -98,7 +98,7 @@ app.layout = html.Div(children=[
                              {'label': 'Yearly Airline delay Report', 'value': 'OPT2'}
                          ],
                          placeholder='Select a report type',
-                         style={'width': '80%', 'padding': '3px', 'font-size': '20px', 'text-align-center': 'center'})
+                         style={'width': '80%', 'padding': '3px', 'font-size': '20px', 'text-align-last': 'center'})
             # Place them next to each other using the division style
         ], style={'display': 'flex'}),
 
@@ -145,8 +145,10 @@ app.layout = html.Div(children=[
                Output(component_id='plot3', component_property='children'),
                Output(component_id='plot4', component_property='children'),
                Output(component_id='plot5', component_property='children')],
+
               [Input(component_id='input-type', component_property='value'),
                Input(component_id='input-year', component_property='value')],
+
               # REVIEW4: Holding output state till user enters all the form information. In this case, it will be chart type and year
               [State("plot1", 'children'), State("plot2", "children"),
                State("plot3", "children"), State("plot4", "children"),
@@ -155,7 +157,7 @@ app.layout = html.Div(children=[
 # Add computation to callback function and return graph
 def get_graph(chart, year, children1, children2, c3, c4, c5):
     # Select data
-    print(year)
+
     df = airline_data[airline_data['Year'] == year]
 
     if chart == 'OPT1':
@@ -202,14 +204,14 @@ def get_graph(chart, year, children1, children2, c3, c4, c5):
                 dcc.Graph(figure=bar_fig),
                 dcc.Graph(figure=line_fig)
                 ]
-    else:
+    elif chart == 'OPT2':
         # REVIEW7: This covers chart type 2 and we have completed this exercise under Flight Delay Time Statistics Dashboard section
         # Compute required information for creating graph from the data
         avg_car, avg_weather, avg_NAS, avg_sec, avg_late = compute_data_choice_2(df)
 
         # Create graph
         carrier_fig = px.line(avg_car, x='Month', y='CarrierDelay', color='Reporting_Airline',
-                              title='Average carrrier delay time (minutes) by airline')
+                              title='Average carrier delay time (minutes) by airline')
         weather_fig = px.line(avg_weather, x='Month', y='WeatherDelay', color='Reporting_Airline',
                               title='Average weather delay time (minutes) by airline')
         nas_fig = px.line(avg_NAS, x='Month', y='NASDelay', color='Reporting_Airline',
@@ -224,7 +226,8 @@ def get_graph(chart, year, children1, children2, c3, c4, c5):
                 dcc.Graph(figure=nas_fig),
                 dcc.Graph(figure=sec_fig),
                 dcc.Graph(figure=late_fig)]
-
+    else:
+        return None
 
 # Run the app
 if __name__ == '__main__':
